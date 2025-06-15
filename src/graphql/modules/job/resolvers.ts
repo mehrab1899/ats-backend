@@ -7,7 +7,7 @@ import { JobWithApplicantCount } from '../../../types/job';
 type JobWithApplicants = Prisma.JobGetPayload<{
     include: { applicants: true };
 }>;
-  
+
 export const jobResolvers = {
     JSON: GraphQLJSON,
 
@@ -74,6 +74,54 @@ export const jobResolvers = {
                 applicantCount: 0,
                 skillsRequired: job.skillsRequired,
                 benefits: job.benefits
+            };
+        },
+        updateJob: async (
+            _: unknown,
+            {
+                id,
+                input
+            }: {
+                id: number;
+                input: Partial<{
+                    title: string;
+                    description: string;
+                    status: Prisma.JobStatus;
+                    skillsRequired: Prisma.InputJsonValue;
+                    benefits: Prisma.InputJsonValue;
+                }>;
+            },
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: number } }
+        ): Promise<JobWithApplicantCount> => {
+            if (!admin) throw new AuthenticationError('Only admins can update jobs');
+
+            const existingJob = await prisma.job.findUnique({
+                where: { id },
+                include: { applicants: true }
+            });
+
+            if (!existingJob) throw new UserInputError(`Job with ID ${id} not found`);
+
+            const updatedJob = await prisma.job.update({
+                where: { id },
+                data: {
+                    title: input.title ?? existingJob.title,
+                    description: input.description ?? existingJob.description,
+                    status: input.status ?? existingJob.status,
+                    skillsRequired: input.skillsRequired ?? existingJob.skillsRequired,
+                    benefits: input.benefits ?? existingJob.benefits
+                }
+            });
+
+            return {
+                id: updatedJob.id,
+                title: updatedJob.title,
+                description: updatedJob.description,
+                status: updatedJob.status,
+                createdAt: updatedJob.createdAt.toISOString(),
+                applicantCount: existingJob.applicants.length,
+                skillsRequired: updatedJob.skillsRequired,
+                benefits: updatedJob.benefits
             };
         }
     }
