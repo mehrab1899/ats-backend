@@ -123,6 +123,36 @@ export const jobResolvers = {
                 skillsRequired: updatedJob.skillsRequired,
                 benefits: updatedJob.benefits
             };
+        },
+        archiveJob: async (
+            _: unknown,
+            { id }: { id: number },
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: number } }
+        ): Promise<JobWithApplicantCount> => {
+            if (!admin) throw new AuthenticationError('Only admins can archive jobs');
+
+            const existing = await prisma.job.findUnique({
+                where: { id },
+                include: { applicants: true }
+            });
+
+            if (!existing) throw new UserInputError(`Job ${id} not found`);
+
+            const archived = await prisma.job.update({
+                where: { id },
+                data: { status: JobStatus.CLOSED }
+            });
+
+            return {
+                id: archived.id,
+                title: archived.title,
+                description: archived.description,
+                status: archived.status,
+                createdAt: archived.createdAt.toISOString(),
+                applicantCount: existing.applicants.length,
+                skillsRequired: archived.skillsRequired,
+                benefits: archived.benefits
+            };
         }
     }
 };

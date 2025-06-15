@@ -35,6 +35,7 @@ export const jobTypeDefs = gql`
   type Mutation {
     createJob(input: JobInput!): Job!
     updateJob(id: Int!, input: JobInput!): Job!
+    archiveJob(id: ID!): Job!
 
   }
 `;
