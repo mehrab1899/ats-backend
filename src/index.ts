@@ -1,12 +1,16 @@
 import { ApolloServer } from 'apollo-server';
-import { typeDefs } from '../src/graphql/schema';
-import { resolvers } from '../src/graphql/schema';
-import { context } from './context';
+import { typeDefs, resolvers } from './graphql/schema';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context,
+    context: ({ req }) => {
+        // Attach Prisma and user context (after verifying JWT if needed)
+        return { prisma };
+    },
 });
 
 server.listen().then(({ url }) => {

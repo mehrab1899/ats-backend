@@ -1,26 +1,25 @@
-// src/graphql/resolvers/auth.ts
 import { PrismaClient } from '@prisma/client';
-import { hashPassword, comparePasswords, generateToken } from '../../auth/auth';
+import { hashPassword, comparePasswords, generateToken } from '../../../auth/auth';
 
 const prisma = new PrismaClient();
 
 export const authResolvers = {
     Mutation: {
-        signup: async (_: any, { username, password }: any) => {
-            const existingAdmin = await prisma.admin.findUnique({ where: { username } });
-            if (existingAdmin) throw new Error('Username already exists');
+        signup: async (_: any, { email, password }: any) => {
+            const existingAdmin = await prisma.admin.findUnique({ where: { email } });
+            if (existingAdmin) throw new Error('Email already exists');
 
             const hashedPassword = await hashPassword(password);
             const newAdmin = await prisma.admin.create({
-                data: { username, password: hashedPassword },
+                data: { email, password: hashedPassword },
             });
 
             const token = generateToken(newAdmin.id);
             return { token };
         },
 
-        login: async (_: any, { username, password }: any) => {
-            const admin = await prisma.admin.findUnique({ where: { username } });
+        login: async (_: any, { email, password }: any) => {
+            const admin = await prisma.admin.findUnique({ where: { email } });
             if (!admin) throw new Error('Invalid credentials');
 
             const isValid = await comparePasswords(password, admin.password);
