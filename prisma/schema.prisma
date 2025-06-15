@@ -32,8 +32,8 @@ model Admin {
 
 model Job {
   id             Int         @id @default(autoincrement())
-  title          String      // Renamed from positionName
-  description    String      // Renamed from theRole
+  title          String      
+  description    String      
   skillsRequired Json
   benefits       Json
   status         JobStatus   @default(OPEN) // Replaces need for archived boolean
