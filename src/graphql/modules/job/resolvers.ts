@@ -124,34 +124,38 @@ export const jobResolvers = {
                 benefits: updatedJob.benefits
             };
         },
-        archiveJob: async (
+        updateJobStatus: async (
             _: unknown,
-            { id }: { id: number },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: number } }
+            { id, status }: { id: string; status: JobStatus },
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ): Promise<JobWithApplicantCount> => {
-            if (!admin) throw new AuthenticationError('Only admins can archive jobs');
+            if (!admin) {
+                throw new AuthenticationError('Only admins can update job status');
+            }
 
             const existing = await prisma.job.findUnique({
                 where: { id },
                 include: { applicants: true }
             });
 
-            if (!existing) throw new UserInputError(`Job ${id} not found`);
+            if (!existing) {
+                throw new UserInputError(`Job with ID ${id} not found`);
+            }
 
-            const archived = await prisma.job.update({
+            const updated = await prisma.job.update({
                 where: { id },
-                data: { status: JobStatus.CLOSED }
+                data: { status }
             });
 
             return {
-                id: archived.id,
-                title: archived.title,
-                description: archived.description,
-                status: archived.status,
-                createdAt: archived.createdAt.toISOString(),
+                id: updated.id,
+                title: updated.title,
+                description: updated.description,
+                status: updated.status,
+                createdAt: updated.createdAt.toISOString(),
                 applicantCount: existing.applicants.length,
-                skillsRequired: archived.skillsRequired,
-                benefits: archived.benefits
+                skillsRequired: updated.skillsRequired,
+                benefits: updated.benefits
             };
         }
     }
