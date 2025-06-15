@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +19,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@graphql-tools/merge": "^9.0.24",
     "@prisma/client": "^6.9.0",
     "apollo-server": "^3.13.0",
     "bcrypt": "^6.0.0",

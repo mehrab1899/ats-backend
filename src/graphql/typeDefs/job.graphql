@@ -1,9 +1,0 @@
-type Job {
-  id: Int!
-  title: String!
-  description: String!
-}
-
-type Query {
-  jobs: [Job!]!
-}
