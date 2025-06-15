@@ -13,7 +13,7 @@ export const context = ({ req }: { req: Request }): Context => {
     if (token) {
         try {
             const payload = verifyToken(token);
-            userId = payload.adminId;
+            userId = payload.sub;
         } catch (err) {
             userId = null; // Invalid token
         }

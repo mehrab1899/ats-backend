@@ -1,6 +1,7 @@
 import { ApolloServer } from 'apollo-server';
 import { typeDefs, resolvers } from './graphql/schema';
 import { PrismaClient } from '@prisma/client';
+import { getAdminFromRequest } from './auth/middleware';
 
 const prisma = new PrismaClient();
 
@@ -8,9 +9,9 @@ const server = new ApolloServer({
     typeDefs,
     resolvers,
     context: ({ req }) => {
-        // Attach Prisma and user context (after verifying JWT if needed)
-        return { prisma };
-    },
+        const admin = getAdminFromRequest(req);
+        return { prisma, admin };
+      }
 });
 
 server.listen().then(({ url }) => {
