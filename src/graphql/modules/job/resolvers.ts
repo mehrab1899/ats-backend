@@ -49,7 +49,7 @@ export const jobResolvers = {
                     benefits: any;
                 };
             },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: number } }
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ): Promise<JobWithApplicantCount> => {
             if (!admin) {
                 throw new AuthenticationError('Only admins can create jobs');
@@ -91,7 +91,7 @@ export const jobResolvers = {
                     benefits: Prisma.InputJsonValue;
                 }>;
             },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: number } }
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ): Promise<JobWithApplicantCount> => {
             if (!admin) throw new AuthenticationError('Only admins can update jobs');
 

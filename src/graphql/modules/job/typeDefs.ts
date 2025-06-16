@@ -10,7 +10,7 @@ export const jobTypeDefs = gql`
   }
 
   type Job {
-    id: Int!
+    id: String!
     title: String!
     description: String!
     status: JobStatus!
