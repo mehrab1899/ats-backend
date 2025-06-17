@@ -82,7 +82,7 @@ export const jobResolvers = {
                 id,
                 input
             }: {
-                id: number;
+                id: string;
                 input: Partial<{
                     title: string;
                     description: string;

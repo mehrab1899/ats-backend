@@ -8,10 +8,11 @@ const prisma = new PrismaClient();
 const server = new ApolloServer({
     typeDefs,
     resolvers,
+    introspection: true,
     context: ({ req }) => {
         const admin = getAdminFromRequest(req);
         return { prisma, admin };
-      }
+    }
 });
 
 server.listen().then(({ url }) => {
