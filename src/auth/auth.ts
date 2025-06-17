@@ -8,7 +8,7 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 
 export interface JWTPayload {
-    sub: number;
+    sub: string;
     role: 'ADMIN';
     iat: number;
     exp: number;
@@ -22,7 +22,7 @@ export async function comparePasswords(password: string, hashedPassword: string)
     return bcrypt.compare(password, hashedPassword);
 }
 
-export function generateToken(adminId: number): string {
+export function generateToken(adminId: string): string {
     return jwt.sign({ sub: adminId, role: 'ADMIN' }, JWT_SECRET, { expiresIn: '7d' });
 }
 
@@ -37,7 +37,7 @@ export function verifyToken(token: string): JWTPayload {
 
     // Runtime assertions
     if (
-        typeof payload.sub !== 'number' ||
+        typeof payload.sub !== 'string' ||
         payload.role !== 'ADMIN' ||
         typeof payload.iat !== 'number' ||
         typeof payload.exp !== 'number'

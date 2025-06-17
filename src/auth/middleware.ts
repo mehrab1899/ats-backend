@@ -12,6 +12,7 @@ export function getAdminFromRequest(req: any) {
         const payload = verifyToken(token);
         return { adminId: payload.sub, role: payload.role };
     } catch (err) {
-        throw new AuthenticationError('Invalid or expired token');
+        // Do NOT throw an error here — just return null for unauthenticated requests
+        return null;
     }
 }

@@ -22,7 +22,7 @@ enum JobStatus {
 }
 
 model Admin {
-  id        Int      @id @default(autoincrement())
+  id String @id @default(uuid())
   email     String   @unique
   password  String
   firstName String?
@@ -31,9 +31,9 @@ model Admin {
 }
 
 model Job {
-  id             Int         @id @default(autoincrement())
-  title          String      // Renamed from positionName
-  description    String      // Renamed from theRole
+  id String @id @default(uuid())
+  title          String      
+  description    String      
   skillsRequired Json
   benefits       Json
   status         JobStatus   @default(OPEN) // Replaces need for archived boolean
@@ -43,11 +43,11 @@ model Job {
 }
 
 model Applicant {
-  id        Int      @id @default(autoincrement())
+  id String @id @default(uuid())
   name      String
   email     String   @unique
   stage     Stage    @default(APPLIED)
-  jobId     Int
+  jobId     String
   job       Job      @relation(fields: [jobId], references: [id])
   appliedAt DateTime @default(now())
 }
