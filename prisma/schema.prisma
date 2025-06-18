@@ -44,10 +44,15 @@ model Job {
 
 model Applicant {
   id String @id @default(uuid())
-  name      String
+  firstName   String
+  lastName    String
+  phone       String  
   email     String   @unique
   stage     Stage    @default(APPLIED)
   jobId     String
   job       Job      @relation(fields: [jobId], references: [id])
+  cv          String   // file path or URL
+  coverLetter String   // file path or URL
+  message     String?
   appliedAt DateTime @default(now())
 }
