@@ -1,36 +1,66 @@
-import { PrismaClient, JobStatus } from '@prisma/client';
-import type { Prisma } from '@prisma/client'; // ✅ ACTUALLY IMPORT THE TYPES
-import { AuthenticationError } from 'apollo-server-errors';
+import { PrismaClient, JobStatus, JobType } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
+import { AuthenticationError, UserInputError } from 'apollo-server-errors';
 import { GraphQLJSON } from 'graphql-type-json';
-import { JobWithApplicantCount } from '../../../types/job';
 
-type JobWithApplicants = Prisma.JobGetPayload<{
-    include: { applicants: true };
-}>;
+type JobWithApplicants = Prisma.JobGetPayload<{ include: { applicants: true } }>;
 
 export const jobResolvers = {
     JSON: GraphQLJSON,
 
     Query: {
-        jobs: async (
-            _: unknown,
-            __: unknown,
-            { prisma }: { prisma: PrismaClient }
-        ): Promise<JobWithApplicantCount[]> => {
-            const jobs = await prisma.job.findMany({
-                include: { applicants: true },
+        // 🔓 Public (Homepage)
+        publicJobs: async (_: unknown, __: unknown, { prisma }: { prisma: PrismaClient }) => {
+            return prisma.job.findMany({
+                where: { status: 'OPEN' },
                 orderBy: { createdAt: 'desc' }
             });
+        },
 
-            return jobs.map((job: JobWithApplicants) => ({
+        // 🔒 Protected (Admin Panel)
+        jobs: async (
+            _: unknown,
+            args: {
+                search?: string;
+                status?: JobStatus;
+                skip?: number;
+                take?: number;
+            },
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
+        ) => {
+            if (!admin) throw new AuthenticationError('Admin only');
+
+            const { search, status, skip = 0, take = 10 } = args;
+
+            const filters: Prisma.JobWhereInput = {};
+
+            if (search) {
+                filters.OR = [
+                    { title: { contains: search, mode: 'insensitive' } },
+                    { description: { contains: search, mode: 'insensitive' } }
+                ];
+            }
+
+            if (status) {
+                filters.status = status;
+            }
+
+            const jobs = await prisma.job.findMany({
+                where: filters,
+                include: { applicants: true },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            });
+
+            return jobs.map((job) => ({
                 id: job.id,
                 title: job.title,
                 description: job.description,
                 status: job.status,
-                createdAt: job.createdAt.toISOString(),
-                applicantCount: job.applicants.length,
-                skillsRequired: job.skillsRequired,
-                benefits: job.benefits
+                type: job.type,
+                applicants: job.applicants.length,
+                createdAt: job.createdAt.toISOString()
             }));
         }
     },
@@ -45,21 +75,21 @@ export const jobResolvers = {
                     title: string;
                     description: string;
                     status?: JobStatus;
+                    type?: JobType;
                     skillsRequired: any;
                     benefits: any;
                 };
             },
             { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
-        ): Promise<JobWithApplicantCount> => {
-            if (!admin) {
-                throw new AuthenticationError('Only admins can create jobs');
-            }
+        ) => {
+            if (!admin) throw new AuthenticationError('Only admins can create jobs');
 
             const job = await prisma.job.create({
                 data: {
                     title: input.title,
                     description: input.description,
                     status: input.status ?? JobStatus.OPEN,
+                    type: input.type ?? JobType.FULL_TIME,
                     skillsRequired: input.skillsRequired,
                     benefits: input.benefits
                 }
@@ -70,12 +100,12 @@ export const jobResolvers = {
                 title: job.title,
                 description: job.description,
                 status: job.status,
-                createdAt: job.createdAt.toISOString(),
-                applicantCount: 0,
-                skillsRequired: job.skillsRequired,
-                benefits: job.benefits
+                type: job.type,
+                applicants: 0,
+                createdAt: job.createdAt.toISOString()
             };
         },
+
         updateJob: async (
             _: unknown,
             {
@@ -86,13 +116,14 @@ export const jobResolvers = {
                 input: Partial<{
                     title: string;
                     description: string;
-                    status: Prisma.JobStatus;
-                    skillsRequired: Prisma.InputJsonValue;
-                    benefits: Prisma.InputJsonValue;
+                    status: JobStatus;
+                    type: JobType;
+                    skillsRequired: any;
+                    benefits: any;
                 }>;
             },
             { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
-        ): Promise<JobWithApplicantCount> => {
+        ) => {
             if (!admin) throw new AuthenticationError('Only admins can update jobs');
 
             const existingJob = await prisma.job.findUnique({
@@ -102,45 +133,42 @@ export const jobResolvers = {
 
             if (!existingJob) throw new UserInputError(`Job with ID ${id} not found`);
 
-            const updatedJob = await prisma.job.update({
+            const updated = await prisma.job.update({
                 where: { id },
                 data: {
                     title: input.title ?? existingJob.title,
                     description: input.description ?? existingJob.description,
                     status: input.status ?? existingJob.status,
+                    type: input.type ?? existingJob.type,
                     skillsRequired: input.skillsRequired ?? existingJob.skillsRequired,
                     benefits: input.benefits ?? existingJob.benefits
                 }
             });
 
             return {
-                id: updatedJob.id,
-                title: updatedJob.title,
-                description: updatedJob.description,
-                status: updatedJob.status,
-                createdAt: updatedJob.createdAt.toISOString(),
-                applicantCount: existingJob.applicants.length,
-                skillsRequired: updatedJob.skillsRequired,
-                benefits: updatedJob.benefits
+                id: updated.id,
+                title: updated.title,
+                description: updated.description,
+                status: updated.status,
+                type: updated.type,
+                applicants: existingJob.applicants.length,
+                createdAt: updated.createdAt.toISOString()
             };
         },
+
         updateJobStatus: async (
             _: unknown,
             { id, status }: { id: string; status: JobStatus },
             { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
-        ): Promise<JobWithApplicantCount> => {
-            if (!admin) {
-                throw new AuthenticationError('Only admins can update job status');
-            }
+        ) => {
+            if (!admin) throw new AuthenticationError('Only admins can update job status');
 
             const existing = await prisma.job.findUnique({
                 where: { id },
                 include: { applicants: true }
             });
 
-            if (!existing) {
-                throw new UserInputError(`Job with ID ${id} not found`);
-            }
+            if (!existing) throw new UserInputError(`Job with ID ${id} not found`);
 
             const updated = await prisma.job.update({
                 where: { id },
@@ -152,10 +180,9 @@ export const jobResolvers = {
                 title: updated.title,
                 description: updated.description,
                 status: updated.status,
-                createdAt: updated.createdAt.toISOString(),
-                applicantCount: existing.applicants.length,
-                skillsRequired: updated.skillsRequired,
-                benefits: updated.benefits
+                type: updated.type,
+                applicants: existing.applicants.length,
+                createdAt: updated.createdAt.toISOString()
             };
         }
     }
