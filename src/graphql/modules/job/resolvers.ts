@@ -32,17 +32,36 @@ export const jobResolvers = {
 
             const { search, status, skip = 0, take = 10 } = args;
 
-            const filters: Prisma.JobWhereInput = {};
+            let filters: Prisma.JobWhereInput = {};
+
+            // 🔍 Build OR search filter
+            const orFilters: Prisma.JobWhereInput[] = [];
 
             if (search) {
-                filters.OR = [
-                    { title: { contains: search, mode: 'insensitive' } },
-                    { description: { contains: search, mode: 'insensitive' } }
-                ];
+                orFilters.push(
+                    { title: { contains: search } },
+                    { description: { contains: search } }
+                );
+
+                // Conditionally add status/type if `search` string exactly matches an enum
+                if (Object.values(JobStatus).includes(search as JobStatus)) {
+                    orFilters.push({ status: { equals: search as JobStatus } });
+                }
+
+                if (Object.values(JobType).includes(search as JobType)) {
+                    orFilters.push({ type: { equals: search as JobType } });
+                }
+
+                filters.OR = orFilters;
             }
 
             if (status) {
-                filters.status = status;
+                filters = {
+                    AND: [
+                        ...(filters.OR ? [{ OR: filters.OR }] : []),
+                        { status }
+                    ]
+                };
             }
 
             const jobs = await prisma.job.findMany({
@@ -63,6 +82,7 @@ export const jobResolvers = {
                 createdAt: job.createdAt.toISOString()
             }));
         }
+
     },
 
     Mutation: {
