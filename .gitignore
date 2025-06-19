@@ -22,3 +22,6 @@ src/generated/prisma/
 # Editor/IDE
 .vscode/
 .DS_Store
+
+# Uploaded files (user-generated content)
+src/uploads/
