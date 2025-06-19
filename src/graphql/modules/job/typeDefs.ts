@@ -9,7 +9,13 @@ export const jobTypeDefs = gql`
     DRAFT
   }
 
-  type Job {
+  enum JobType {
+    FULL_TIME
+    PART_TIME
+    CONTRACT
+  }
+
+  type PublicJob {
     id: String!
     title: String!
     description: String!
@@ -17,24 +23,40 @@ export const jobTypeDefs = gql`
     skillsRequired: JSON!
     benefits: JSON!
     createdAt: String!
-    applicantCount: Int!
+  }
+
+  type AdminJob {
+    id: String!
+    title: String!
+    description: String!
+    status: JobStatus!
+    type: JobType!
+    applicants: Int!
+    createdAt: String!
   }
 
   input JobInput {
     title: String!
     description: String!
     status: JobStatus
+    type: JobType
     skillsRequired: JSON!
     benefits: JSON!
   }
 
   type Query {
-    jobs: [Job!]!
+    publicJobs: [PublicJob!]!
+    jobs(
+      search: String
+      status: JobStatus
+      skip: Int = 0
+      take: Int = 10
+    ): [AdminJob!]!
   }
 
   type Mutation {
-    createJob(input: JobInput!): Job!
-    updateJob(id: ID!, input: JobInput!): Job!
-    updateJobStatus(id: ID!, status: JobStatus!): Job!
+    createJob(input: JobInput!): AdminJob!
+    updateJob(id: ID!, input: JobInput!): AdminJob!
+    updateJobStatus(id: ID!, status: JobStatus!): AdminJob!
   }
 `;
