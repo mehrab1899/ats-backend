@@ -12,6 +12,15 @@ export const applicantTypeDefs = gql`
     REJECTED
   }
 
+  type ApplicantRow {
+    id: String!
+    name: String!
+    email: String!
+    stage: Stage!
+    position: String!
+    appliedAt: String!
+  }
+
   type Applicant {
     id: String!
     firstName: String!
@@ -33,6 +42,10 @@ export const applicantTypeDefs = gql`
     phone: String!
     jobId: String!
     message: String
+  }
+
+  extend type Query {
+    applicants(search: String, stage: Stage, skip: Int, take: Int): [ApplicantRow!]!
   }
 
   extend type Mutation {
