@@ -1,13 +1,89 @@
 import { PrismaClient } from '@prisma/client';
-import { UserInputError } from 'apollo-server-errors';
+import { AuthenticationError, UserInputError } from 'apollo-server-errors';
 import { GraphQLUpload } from 'graphql-upload';
 import { createWriteStream } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from 'graphql-upload';
 
+const VALID_STAGES = ['APPLIED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
+
+
 export const applicantResolvers = {
     Upload: GraphQLUpload,
+
+    Query: {
+        applicants: async (
+            _: unknown,
+            args: {
+                search?: string;
+                stage?: string;
+                skip?: number;
+                take?: number;
+            },
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
+        ) => {
+            if (!admin) throw new AuthenticationError('Admin only');
+
+            const { search = '', stage, skip = 0, take = 10 } = args;
+
+            const normalizedSearch = search.trim();
+            const normalizedStage = stage?.toUpperCase();
+
+            const filters: any = {};
+            const orConditions: any[] = [];
+
+            if (normalizedSearch) {
+                orConditions.push(
+                    { firstName: { contains: normalizedSearch } },
+                    { lastName: { contains: normalizedSearch } },
+                    { email: { contains: normalizedSearch } },
+                    { phone: { contains: normalizedSearch } },
+                    {
+                        job: {
+                            title: { contains: normalizedSearch }
+                        }
+                    }
+                );
+
+                // ✅ Only include stage filter in OR if search string is a valid enum
+                if (VALID_STAGES.includes(normalizedSearch.toUpperCase())) {
+                    orConditions.push({
+                        stage: {
+                            equals: normalizedSearch.toUpperCase() as Stage
+                        }
+                    });
+                }
+
+                filters.OR = orConditions;
+            }
+
+            if (normalizedStage && VALID_STAGES.includes(normalizedStage)) {
+                const stageFilter = { stage: normalizedStage as Stage };
+                filters.AND = filters.OR ? [filters, stageFilter] : [stageFilter];
+            }
+
+            const applicants = await prisma.applicant.findMany({
+                where: filters,
+                include: {
+                    job: { select: { title: true } }
+                },
+                orderBy: { appliedAt: 'desc' },
+                skip,
+                take
+            });
+
+            return applicants.map((app) => ({
+                id: app.id,
+                name: `${app.firstName} ${app.lastName}`,
+                email: app.email,
+                stage: app.stage,
+                position: app.job.title,
+                appliedAt: app.appliedAt.toISOString()
+            }));
+        }
+
+    },
 
     Mutation: {
         submitApplicationText: async (
