@@ -15,7 +15,7 @@ const app = express();
 // ✅ CORS setup to allow frontend dev server access
 app.use(
     cors({
-        origin: 'http://localhost:3000', // your frontend origin
+        origin: ['http://localhost:3000', 'http://localhost:4000', 'https://studio.apollographql.com'], // your frontend origin
         credentials: true
     })
 );

@@ -21,6 +21,12 @@ enum JobStatus {
   DRAFT
 }
 
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+}
+
 model Admin {
   id String @id @default(uuid())
   email     String   @unique
@@ -37,6 +43,7 @@ model Job {
   skillsRequired Json
   benefits       Json
   status         JobStatus   @default(OPEN) // Replaces need for archived boolean
+  type           JobType    @default(FULL_TIME) 
   applicants     Applicant[]
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
