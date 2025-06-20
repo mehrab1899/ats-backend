@@ -33,6 +33,7 @@ export const applicantResolvers = {
             const filters: any = {};
             const orConditions: any[] = [];
 
+            // Apply search term filter if provided
             if (normalizedSearch) {
                 orConditions.push(
                     { firstName: { contains: normalizedSearch } },
@@ -46,42 +47,43 @@ export const applicantResolvers = {
                     }
                 );
 
-                // ✅ Only include stage filter in OR if search string is a valid enum
-                if (VALID_STAGES.includes(normalizedSearch.toUpperCase())) {
-                    orConditions.push({
-                        stage: {
-                            equals: normalizedSearch.toUpperCase() as Stage
-                        }
-                    });
+                // Only include search-related OR condition if there are any
+                if (orConditions.length) {
+                    filters.OR = orConditions;
                 }
-
-                filters.OR = orConditions;
             }
 
+            // Apply stage filter if provided and valid (separate from the search)
             if (normalizedStage && VALID_STAGES.includes(normalizedStage)) {
-                const stageFilter = { stage: normalizedStage as Stage };
-                filters.AND = filters.OR ? [filters, stageFilter] : [stageFilter];
+                filters.stage = normalizedStage as Stage;  // Directly filter by stage
             }
 
-            const applicants = await prisma.applicant.findMany({
-                where: filters,
-                include: {
-                    job: { select: { title: true } }
-                },
-                orderBy: { appliedAt: 'desc' },
-                skip,
-                take
-            });
+            try {
+                const applicants = await prisma.applicant.findMany({
+                    where: filters,
+                    include: {
+                        job: { select: { title: true } }
+                    },
+                    orderBy: { appliedAt: 'desc' },
+                    skip,
+                    take
+                });
 
-            return applicants.map((app) => ({
-                id: app.id,
-                name: `${app.firstName} ${app.lastName}`,
-                email: app.email,
-                stage: app.stage,
-                position: app.job.title,
-                appliedAt: app.appliedAt.toISOString()
-            }));
+                // Map the results into a desired format
+                return applicants.map((app) => ({
+                    id: app.id,
+                    name: `${app.firstName} ${app.lastName}`,
+                    email: app.email,
+                    stage: app.stage,
+                    position: app.job.title,
+                    appliedAt: app.appliedAt.toISOString()
+                }));
+            } catch (error) {
+                console.error('Error fetching applicants:', error);
+                throw new Error('Internal Server Error');
+            }
         }
+
 
     },
 
