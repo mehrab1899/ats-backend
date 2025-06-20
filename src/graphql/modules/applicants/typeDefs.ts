@@ -1,4 +1,3 @@
-// src/modules/applicants/typeDefs.ts
 import { gql } from 'apollo-server';
 
 export const applicantTypeDefs = gql`
@@ -19,6 +18,11 @@ export const applicantTypeDefs = gql`
     stage: Stage!
     position: String!
     appliedAt: String!
+  }
+
+  type ApplicantsResponse {
+    applicants: [ApplicantRow!]!
+    totalApplicantsCount: Int!
   }
 
   type Applicant {
@@ -45,7 +49,7 @@ export const applicantTypeDefs = gql`
   }
 
   extend type Query {
-    applicants(search: String, stage: Stage, skip: Int, take: Int): [ApplicantRow!]!
+    applicants(search: String, stage: Stage, skip: Int, take: Int): ApplicantsResponse!
   }
 
   extend type Mutation {

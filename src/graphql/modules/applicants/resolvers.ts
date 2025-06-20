@@ -15,16 +15,9 @@ export const applicantResolvers = {
     Query: {
         applicants: async (
             _: unknown,
-            args: {
-                search?: string;
-                stage?: string;
-                skip?: number;
-                take?: number;
-            },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
+            args: { search?: string; stage?: string; skip?: number; take?: number },
+            { prisma }: { prisma: PrismaClient }
         ) => {
-            if (!admin) throw new AuthenticationError('Admin only');
-
             const { search = '', stage, skip = 0, take = 10 } = args;
 
             const normalizedSearch = search.trim();
@@ -33,7 +26,6 @@ export const applicantResolvers = {
             const filters: any = {};
             const orConditions: any[] = [];
 
-            // Apply search term filter if provided
             if (normalizedSearch) {
                 orConditions.push(
                     { firstName: { contains: normalizedSearch } },
@@ -47,18 +39,17 @@ export const applicantResolvers = {
                     }
                 );
 
-                // Only include search-related OR condition if there are any
                 if (orConditions.length) {
                     filters.OR = orConditions;
                 }
             }
 
-            // Apply stage filter if provided and valid (separate from the search)
             if (normalizedStage && VALID_STAGES.includes(normalizedStage)) {
-                filters.stage = normalizedStage as Stage;  // Directly filter by stage
+                filters.stage = normalizedStage as Stage;
             }
 
             try {
+                // Query for paginated applicants
                 const applicants = await prisma.applicant.findMany({
                     where: filters,
                     include: {
@@ -69,23 +60,31 @@ export const applicantResolvers = {
                     take
                 });
 
-                // Map the results into a desired format
-                return applicants.map((app) => ({
-                    id: app.id,
-                    name: `${app.firstName} ${app.lastName}`,
-                    email: app.email,
-                    stage: app.stage,
-                    position: app.job.title,
-                    appliedAt: app.appliedAt.toISOString()
-                }));
+                // Query for total count of applicants matching filters
+                const totalApplicantsCount = await prisma.applicant.count({
+                    where: filters,
+                });
+
+                // Return both the paginated applicants and total count in the expected format
+                return {
+                    applicants: applicants.map((app) => ({
+                        id: app.id,
+                        name: `${app.firstName} ${app.lastName}`,
+                        email: app.email,
+                        stage: app.stage,
+                        position: app.job.title,
+                        appliedAt: app.appliedAt.toISOString()
+                    })),
+                    totalApplicantsCount // Returning the total count of applicants
+                };
             } catch (error) {
                 console.error('Error fetching applicants:', error);
                 throw new Error('Internal Server Error');
             }
         }
 
-
     },
+
 
     Mutation: {
         submitApplicationText: async (
