@@ -43,7 +43,6 @@ export const jobResolvers = {
                     { description: { contains: search } }
                 );
 
-                // Conditionally add status/type if `search` string exactly matches an enum
                 if (Object.values(JobStatus).includes(search as JobStatus)) {
                     orFilters.push({ status: { equals: search as JobStatus } });
                 }
@@ -64,23 +63,38 @@ export const jobResolvers = {
                 };
             }
 
-            const jobs = await prisma.job.findMany({
-                where: filters,
-                include: { applicants: true },
-                orderBy: { createdAt: 'desc' },
-                skip,
-                take
-            });
+            try {
+                // Query for paginated jobs
+                const jobs = await prisma.job.findMany({
+                    where: filters,
+                    include: { applicants: true },
+                    orderBy: { createdAt: 'desc' },
+                    skip,
+                    take
+                });
 
-            return jobs.map((job) => ({
-                id: job.id,
-                title: job.title,
-                description: job.description,
-                status: job.status,
-                type: job.type,
-                applicants: job.applicants.length,
-                createdAt: job.createdAt.toISOString()
-            }));
+                // Query for total count of jobs matching filters
+                const totalJobsCount = await prisma.job.count({
+                    where: filters,
+                });
+
+                // Return both the paginated jobs and total count
+                return {
+                    jobs: jobs.map((job) => ({
+                        id: job.id,
+                        title: job.title,
+                        description: job.description,
+                        status: job.status,
+                        type: job.type,
+                        applicants: job.applicants.length,
+                        createdAt: job.createdAt.toISOString()
+                    })),
+                    totalJobsCount
+                };
+            } catch (error) {
+                console.error('Error fetching jobs:', error);
+                throw new Error('Internal Server Error');
+            }
         }
 
     },

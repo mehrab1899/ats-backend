@@ -35,6 +35,11 @@ export const jobTypeDefs = gql`
     createdAt: String!
   }
 
+  type JobsResponse {
+    jobs: [AdminJob!]!
+    totalJobsCount: Int!
+  }
+
   input JobInput {
     title: String!
     description: String!
@@ -51,7 +56,7 @@ export const jobTypeDefs = gql`
       status: JobStatus
       skip: Int = 0
       take: Int = 10
-    ): [AdminJob!]!
+    ): JobsResponse!
   }
 
   type Mutation {
