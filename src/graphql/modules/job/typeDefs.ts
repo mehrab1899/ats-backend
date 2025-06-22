@@ -35,6 +35,18 @@ export const jobTypeDefs = gql`
     createdAt: String!
   }
 
+  type Job {
+    id: String!
+    title: String!
+    description: String!
+    status: JobStatus!
+    type: JobType!
+    skillsRequired: JSON!
+    benefits: JSON!
+    createdAt: String!
+    applicants: Int!
+  }
+
   type JobsResponse {
     jobs: [AdminJob!]!
     totalJobsCount: Int!
@@ -57,6 +69,8 @@ export const jobTypeDefs = gql`
       skip: Int = 0
       take: Int = 10
     ): JobsResponse!
+    getJobById(id: String!): Job! 
+
   }
 
   type Mutation {
