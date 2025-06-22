@@ -95,8 +95,40 @@ export const jobResolvers = {
                 console.error('Error fetching jobs:', error);
                 throw new Error('Internal Server Error');
             }
-        }
+        },
 
+        // Fetch single job by ID
+        getJobById: async (
+            _: unknown,
+            { id }: { id: string },
+            { prisma }: { prisma: PrismaClient }
+        ) => {
+            try {
+                const job = await prisma.job.findUnique({
+                    where: { id },
+                    include: { applicants: true }, // Include applicants count if needed
+                });
+
+                if (!job) {
+                    throw new UserInputError(`Job with ID ${id} not found`);
+                }
+
+                return {
+                    id: job.id,
+                    title: job.title,
+                    description: job.description,
+                    status: job.status,
+                    type: job.type,
+                    skillsRequired: job.skillsRequired, // Array of strings
+                    benefits: job.benefits, // Array of strings
+                    createdAt: job.createdAt.toISOString(),
+                    applicants: job.applicants.length,
+                };
+            } catch (error) {
+                console.error('Error fetching job by ID:', error);
+                throw new Error('Internal Server Error');
+            }
+        },
     },
 
     Mutation: {
