@@ -62,5 +62,7 @@ export const applicantTypeDefs = gql`
 
   extend type Mutation {
     submitApplicationText(input: ApplicantTextInput!, cv: Upload!, coverLetter: Upload!): Applicant!
+    updateApplicantStage(id: String!, stage: Stage!): Applicant!
+
   }
 `;
