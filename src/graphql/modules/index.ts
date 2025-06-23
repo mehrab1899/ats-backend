@@ -9,6 +9,8 @@ import { jobResolvers } from './job/resolvers';
 import { applicantTypeDefs } from './applicants/typeDefs';
 import { applicantResolvers } from './applicants/resolvers';
 
+import { analyticsTypeDefs } from './analytics/typeDefs';
+import { analyticsResolvers } from './analytics/resolvers';
 
-export const typeDefs = mergeTypeDefs([authTypeDefs, jobTypeDefs, applicantTypeDefs]);
-export const resolvers = mergeResolvers([authResolvers, jobResolvers, applicantResolvers]);
+export const typeDefs = mergeTypeDefs([authTypeDefs, jobTypeDefs, applicantTypeDefs, analyticsTypeDefs]);
+export const resolvers = mergeResolvers([authResolvers, jobResolvers, applicantResolvers, analyticsResolvers]);
