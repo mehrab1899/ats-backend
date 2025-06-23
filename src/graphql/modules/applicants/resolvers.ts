@@ -167,6 +167,25 @@ export const applicantResolvers = {
             });
 
             return applicant;
+        },
+        updateApplicantStage: async (
+            _: unknown,
+            args: { id: string; stage: string },
+            { prisma }: { prisma: PrismaClient }
+        ) => {
+            const VALID_STAGES = ['APPLIED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
+
+            if (!VALID_STAGES.includes(args.stage)) {
+                throw new UserInputError('Invalid stage value');
+            }
+
+            const updated = await prisma.applicant.update({
+                where: { id: args.id },
+                data: { stage: args.stage }
+            });
+
+            return updated;
         }
+
     }
 };
