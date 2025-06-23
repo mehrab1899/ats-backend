@@ -5,6 +5,8 @@ import { createWriteStream } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from 'graphql-upload';
+import 'dotenv/config'; // ✅ already present — good
+import fs from 'fs';
 
 const VALID_STAGES = ['APPLIED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
 
@@ -81,8 +83,25 @@ export const applicantResolvers = {
                 console.error('Error fetching applicants:', error);
                 throw new Error('Internal Server Error');
             }
-        }
+        },
+        getApplicantById: async (
+            _: unknown,
+            args: { id: string },
+            { prisma }: { prisma: PrismaClient }
+        ) => {
+            const applicant = await prisma.applicant.findUnique({
+                where: { id: args.id },
+                include: {
+                    job: true
+                }
+            });
 
+            if (!applicant) {
+                throw new UserInputError('Applicant not found');
+            }
+
+            return applicant;
+        }
     },
 
 
@@ -117,8 +136,12 @@ export const applicantResolvers = {
                 const { createReadStream, filename } = await upload;
                 const stream = createReadStream();
                 const uniqueName = `${prefix}-${uuidv4()}${path.extname(filename)}`;
-                const uploadPath = path.join(__dirname, '../../../uploads');
+                const uploadPath = path.join(process.cwd(), 'uploads');
+                console.log('uploadPath', uploadPath)
                 const filePath = path.join(uploadPath, uniqueName);
+
+                // Ensure uploads folder exists (optional but safe)
+                await fs.promises.mkdir(uploadPath, { recursive: true });
 
                 await new Promise((resolve, reject) => {
                     const writeStream = createWriteStream(filePath);
@@ -127,8 +150,10 @@ export const applicantResolvers = {
                     writeStream.on('error', reject);
                 });
 
-                return `/uploads/${uniqueName}`;
+                const baseUrl = process.env.APP_BASE_URL || 'http://localhost:4000';
+                return `${baseUrl}/uploads/${uniqueName}`;
             };
+
 
             const cvPath = await saveFile(cv, 'cv');
             const coverLetterPath = await saveFile(coverLetter, 'cover');
