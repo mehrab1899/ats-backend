@@ -24,4 +24,4 @@ src/generated/prisma/
 .DS_Store
 
 # Uploaded files (user-generated content)
-src/uploads/
+uploads/

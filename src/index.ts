@@ -24,7 +24,7 @@ app.use(
 app.use(graphqlUploadExpress({ maxFileSize: 10_000_000, maxFiles: 2 }));
 
 // ✅ Serve uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, './uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ✅ Apollo Server setup
 const server = new ApolloServer({

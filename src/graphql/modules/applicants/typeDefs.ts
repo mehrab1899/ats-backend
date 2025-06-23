@@ -25,6 +25,11 @@ export const applicantTypeDefs = gql`
     totalApplicantsCount: Int!
   }
 
+  type JobRef {
+  id: String!
+  title: String!
+  }
+
   type Applicant {
     id: String!
     firstName: String!
@@ -32,6 +37,7 @@ export const applicantTypeDefs = gql`
     email: String!
     phone: String!
     jobId: String!
+    job: JobRef!   
     stage: Stage!
     cv: String!
     coverLetter: String!
@@ -50,6 +56,8 @@ export const applicantTypeDefs = gql`
 
   extend type Query {
     applicants(search: String, stage: Stage, skip: Int, take: Int): ApplicantsResponse!
+    getApplicantById(id: String!): Applicant!
+
   }
 
   extend type Mutation {
