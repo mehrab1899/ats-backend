@@ -234,7 +234,7 @@ export const jobResolvers = {
             });
 
             return {
-                id: updated.id,
+                id: `admin-${updated.id}`,
                 title: updated.title,
                 description: updated.description,
                 status: updated.status,
@@ -266,7 +266,7 @@ export const jobResolvers = {
             });
 
             return {
-                id: updated.id,
+                id: `admin-${updated.id}`,
                 title: updated.title,
                 description: updated.description,
                 status: updated.status,

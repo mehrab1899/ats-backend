@@ -107,7 +107,7 @@ export const applicantResolvers = {
 
             return {
                 __typename: 'Applicant',  // Use 'Applicant' for detail view
-                id: `$applicant-${applicant.id}`,
+                id: `applicant-${applicant.id}`,
                 firstName: applicant.firstName,
                 lastName: applicant.lastName,
                 email: applicant.email,
@@ -201,7 +201,10 @@ export const applicantResolvers = {
                 data: { stage: args.stage }
             });
 
-            return updated;
+            return {
+                id: `applicant-${updated.id}`,
+                stage: updated.stage
+            };
         }
 
     }
