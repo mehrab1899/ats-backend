@@ -11,11 +11,14 @@ export const jobResolvers = {
     Query: {
         // 🔓 Public (Homepage)
         publicJobs: async (_: unknown, __: unknown, { prisma }: { prisma: PrismaClient }) => {
-            return prisma.job.findMany({
+            const jobs = await prisma.job.findMany({
                 where: { status: 'OPEN' },
-                orderBy: { createdAt: 'desc' }
-            }).map(job => ({
-                __typename: 'Job',  // Always return 'Job' for public query
+                orderBy: { createdAt: 'desc' },
+                include: { applicants: true }
+            });
+
+            return jobs.map(job => ({
+                __typename: 'Job',
                 id: `job-${job.id}`,
                 title: job.title,
                 description: job.description,
@@ -26,7 +29,7 @@ export const jobResolvers = {
                 createdAt: job.createdAt.toISOString(),
                 applicants: job.applicants.length,
                 context: 'public'
-            }));;
+            }));
         },
 
         // 🔒 Protected (Admin Panel)
