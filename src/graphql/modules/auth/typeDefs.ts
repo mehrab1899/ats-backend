@@ -4,6 +4,10 @@ export const authTypeDefs = gql`
   type AuthPayload {
     token: String!
   }
+  
+  type Query {
+    _: Boolean  # This is just a dummy query to satisfy Apollo's requirement
+  }
 
   type Mutation {
     signup(

@@ -12,7 +12,7 @@ export const applicantTypeDefs = gql`
   }
 
   type ApplicantRow {
-    id: String!
+    id: ID!
     name: String!
     email: String!
     stage: Stage!
@@ -26,17 +26,17 @@ export const applicantTypeDefs = gql`
   }
 
   type JobRef {
-  id: String!
+  id: ID!
   title: String!
   }
 
   type Applicant {
-    id: String!
+    id: ID!
     firstName: String!
     lastName: String!
     email: String!
     phone: String!
-    jobId: String!
+    jobId: ID!
     job: JobRef!   
     stage: Stage!
     cv: String!
@@ -50,19 +50,19 @@ export const applicantTypeDefs = gql`
     lastName: String!
     email: String!
     phone: String!
-    jobId: String!
+    jobId: ID!
     message: String
   }
 
   extend type Query {
     applicants(search: String, stage: Stage, skip: Int, take: Int): ApplicantsResponse!
-    getApplicantById(id: String!): Applicant!
+    getApplicantById(id: ID!): Applicant!
 
   }
 
   extend type Mutation {
     submitApplicationText(input: ApplicantTextInput!, cv: Upload!, coverLetter: Upload!): Applicant!
-    updateApplicantStage(id: String!, stage: Stage!): Applicant!
+    updateApplicantStage(id: ID!, stage: Stage!): Applicant!
 
   }
 `;
