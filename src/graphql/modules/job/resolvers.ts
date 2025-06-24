@@ -28,7 +28,6 @@ export const jobResolvers = {
                 benefits: job.benefits,
                 createdAt: job.createdAt.toISOString(),
                 applicants: job.applicants.length,
-                context: 'public'
             }));
         },
 
@@ -104,7 +103,6 @@ export const jobResolvers = {
                         type: job.type,
                         applicants: job.applicants.length,
                         createdAt: job.createdAt.toISOString(),
-                        context: 'admin'
                     })),
                     totalJobsCount
                 };
@@ -146,7 +144,6 @@ export const jobResolvers = {
                     benefits: job.benefits, // Array of strings
                     createdAt: job.createdAt.toISOString(),
                     applicants: job.applicants.length,
-                    context: 'admin'
                 };
             } catch (error) {
                 console.error('Error fetching job by ID:', error);

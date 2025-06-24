@@ -117,7 +117,6 @@ export const applicantResolvers = {
                 cv: applicant.cv,
                 coverLetter: applicant.coverLetter,
                 appliedAt: applicant.appliedAt.toISOString(),
-                context: 'detail'  // Adding context to differentiate between views
             };
         }
     },
