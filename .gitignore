@@ -25,3 +25,6 @@ src/generated/prisma/
 
 # Uploaded files (user-generated content)
 uploads/
+
+/coverage
+
