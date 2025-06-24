@@ -212,16 +212,17 @@ export const jobResolvers = {
             { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ) => {
             if (!admin) throw new AuthenticationError('Only admins can update jobs');
+            const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix
 
             const existingJob = await prisma.job.findUnique({
-                where: { id },
+                where: { id: jobId },
                 include: { applicants: true }
             });
 
             if (!existingJob) throw new UserInputError(`Job with ID ${id} not found`);
 
             const updated = await prisma.job.update({
-                where: { id },
+                where: { id: jobId },
                 data: {
                     title: input.title ?? existingJob.title,
                     description: input.description ?? existingJob.description,
@@ -249,16 +250,18 @@ export const jobResolvers = {
             { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ) => {
             if (!admin) throw new AuthenticationError('Only admins can update job status');
-
+            console.log('id in job', id)
+            const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix
+            console.log('after prefix', jobId)
             const existing = await prisma.job.findUnique({
-                where: { id },
+                where: { id: jobId },
                 include: { applicants: true }
             });
 
             if (!existing) throw new UserInputError(`Job with ID ${id} not found`);
 
             const updated = await prisma.job.update({
-                where: { id },
+                where: { id: jobId },
                 data: { status }
             });
 
