@@ -36,7 +36,7 @@ export const jobTypeDefs = gql`
   }
 
   type Job {
-    id: String!
+    id: ID!
     title: String!
     description: String!
     status: JobStatus!
@@ -69,7 +69,7 @@ export const jobTypeDefs = gql`
       skip: Int = 0
       take: Int = 10
     ): JobsResponse!
-    getJobById(id: String!): Job! 
+    getJobById(id: ID!): Job! 
 
   }
 

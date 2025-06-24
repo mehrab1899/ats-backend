@@ -37,12 +37,13 @@ describe('Authentication Module Tests', () => {
         }
       }
     `;
+        const uniqueEmail = `newAdmin-${Date.now()}@test.com`; // Dynamically generate a unique email using the current timestamp
 
         // Mock the behavior for creating a new admin
         prismaMock.admin.findUnique = jest.fn().mockResolvedValue(null); // No admin exists with the email
         prismaMock.admin.create = jest.fn().mockResolvedValue({
             id: 'new-admin-id',
-            email: 'newAdmin3@test.com',
+            email: uniqueEmail,
             password: 'hashed-password'
         });
 
@@ -54,7 +55,7 @@ describe('Authentication Module Tests', () => {
             .send({
                 query: SIGNUP,
                 variables: {
-                    email: 'newAdmin3@test.com',
+                    email: uniqueEmail,
                     password: 'password123'
                 }
             });
