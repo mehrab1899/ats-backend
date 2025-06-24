@@ -16,23 +16,25 @@ export const jobTypeDefs = gql`
   }
 
   type PublicJob {
-    id: String!
+    id: ID!
     title: String!
     description: String!
     status: JobStatus!
     skillsRequired: JSON!
     benefits: JSON!
     createdAt: String!
+    context: String
   }
 
   type AdminJob {
-    id: String!
+    id: ID!
     title: String!
     description: String!
     status: JobStatus!
     type: JobType!
     applicants: Int!
     createdAt: String!
+    context:String
   }
 
   type Job {
@@ -45,6 +47,7 @@ export const jobTypeDefs = gql`
     benefits: JSON!
     createdAt: String!
     applicants: Int!
+    context:String
   }
 
   type JobsResponse {

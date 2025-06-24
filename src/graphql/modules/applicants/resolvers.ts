@@ -86,11 +86,16 @@ export const applicantResolvers = {
         },
         getApplicantById: async (
             _: unknown,
-            args: { id: string },
-            { prisma }: { prisma: PrismaClient }
+            { id }: { id: string },
+            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ) => {
+            if (!admin) throw new AuthenticationError('Only Admin can Access');
+
+            const applicantId = id.replace(/^$applicant-/, '');  // Strip prefix
+            console.log(`Querying for applicant with id: ${applicantId}`);
+
             const applicant = await prisma.applicant.findUnique({
-                where: { id: args.id },
+                where: { id: applicantId },
                 include: {
                     job: true
                 }
@@ -100,7 +105,20 @@ export const applicantResolvers = {
                 throw new UserInputError('Applicant not found');
             }
 
-            return applicant;
+            return {
+                __typename: 'Applicant',  // Use 'Applicant' for detail view
+                id: `$applicant-${applicant.id}`,
+                firstName: applicant.firstName,
+                lastName: applicant.lastName,
+                email: applicant.email,
+                phone: applicant.phone,
+                stage: applicant.stage,
+                job: applicant.job,
+                cv: applicant.cv,
+                coverLetter: applicant.coverLetter,
+                appliedAt: applicant.appliedAt.toISOString(),
+                context: 'detail'  // Adding context to differentiate between views
+            };
         }
     },
 
