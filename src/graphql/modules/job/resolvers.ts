@@ -183,7 +183,7 @@ export const jobResolvers = {
             });
 
             return {
-                id: job.id,
+                id: `admin-job-${job.id}`,
                 title: job.title,
                 description: job.description,
                 status: job.status,
@@ -234,7 +234,7 @@ export const jobResolvers = {
             });
 
             return {
-                id: `admin-${updated.id}`,
+                id: `admin-job-${updated.id}`,
                 title: updated.title,
                 description: updated.description,
                 status: updated.status,
@@ -266,7 +266,7 @@ export const jobResolvers = {
             });
 
             return {
-                id: `admin-${updated.id}`,
+                id: `admin-job-${updated.id}`,
                 title: updated.title,
                 description: updated.description,
                 status: updated.status,
