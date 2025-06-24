@@ -107,7 +107,7 @@ export const applicantResolvers = {
 
             return {
                 __typename: 'Applicant',  // Use 'Applicant' for detail view
-                id: `$applicant-${applicant.id}`,
+                id: `applicant-${applicant.id}`,
                 firstName: applicant.firstName,
                 lastName: applicant.lastName,
                 email: applicant.email,
@@ -143,7 +143,9 @@ export const applicantResolvers = {
             },
             { prisma }: { prisma: PrismaClient }
         ) => {
-            const job = await prisma.job.findUnique({ where: { id: input.jobId } });
+            const jobIdTrimmed = input.jobId.replace(/^job-|^admin-job-/, '');  // Strip prefix
+
+            const job = await prisma.job.findUnique({ where: { id: jobIdTrimmed } });
             if (!job) throw new UserInputError('Job not found');
 
             const existing = await prisma.applicant.findUnique({ where: { email: input.email } });
@@ -178,6 +180,7 @@ export const applicantResolvers = {
             const applicant = await prisma.applicant.create({
                 data: {
                     ...input,
+                    jobId: jobIdTrimmed,
                     cv: cvPath,
                     coverLetter: coverLetterPath
                 }
@@ -201,7 +204,10 @@ export const applicantResolvers = {
                 data: { stage: args.stage }
             });
 
-            return updated;
+            return {
+                id: `applicant-${updated.id}`,
+                stage: updated.stage
+            };
         }
 
     }
