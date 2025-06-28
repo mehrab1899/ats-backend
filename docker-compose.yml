@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  ats-backend:
+    container_name: ats-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - prisma-db:/ats-backend/prisma/dev.db
+    environment:
+      - DATABASE_URL=file:./dev.db
+    command: >
+      sh -c "
+        npx prisma generate &&
+        npx prisma migrate dev --name init --skip-seed &&
+        npx ts-node prisma/seed.ts &&
+        npm run dev
+      "
+    restart: unless-stopped
+
+volumes:
+  prisma-db:
