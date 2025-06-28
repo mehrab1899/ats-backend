@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 export const authResolvers = {
     Mutation: {
-        signup: async (_: any, { email, password }: any) => {
+        signup: async (_: any, { email, password }: any, { prisma }: { prisma: PrismaClient }) => {
             const existingAdmin = await prisma.admin.findUnique({ where: { email } });
             if (existingAdmin) throw new Error('Email already exists');
 
