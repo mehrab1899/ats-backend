@@ -134,7 +134,13 @@ async function main() {
         });
     }
 
-    await prisma.applicant.createMany({ data: applicantData });
+    for (const ap of applicantData) {
+        await prisma.applicant.upsert({
+            where: { email: ap.email },
+            update: ap,
+            create: ap,
+        });
+    }
 
     console.log('✅ Applicants created:', applicantData.length);
 }
