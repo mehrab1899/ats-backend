@@ -116,9 +116,8 @@ export const jobResolvers = {
         getJobById: async (
             _: unknown,
             { id }: { id: string },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
+            { prisma }: { prisma: PrismaClient }
         ) => {
-            if (!admin) throw new AuthenticationError('Only Admin can Access');
 
             try {
                 const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix

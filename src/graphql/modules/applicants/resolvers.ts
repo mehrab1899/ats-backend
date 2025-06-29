@@ -91,7 +91,7 @@ export const applicantResolvers = {
         ) => {
             if (!admin) throw new AuthenticationError('Only Admin can Access');
 
-            const applicantId = id.replace(/^$applicant-/, '');  // Strip prefix
+            const applicantId = id.replace(/^applicant-/, '');
             console.log(`Querying for applicant with id: ${applicantId}`);
 
             const applicant = await prisma.applicant.findUnique({
@@ -198,9 +198,10 @@ export const applicantResolvers = {
             if (!VALID_STAGES.includes(args.stage)) {
                 throw new UserInputError('Invalid stage value');
             }
-
+            const applicantId = args.id.replace(/^applicant-/, '');
+            console.log('app id', applicantId)
             const updated = await prisma.applicant.update({
-                where: { id: args.id },
+                where: { id: applicantId },
                 data: { stage: args.stage }
             });
 
