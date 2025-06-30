@@ -70,7 +70,7 @@ export const applicantResolvers = {
                 // Return both the paginated applicants and total count in the expected format
                 return {
                     applicants: applicants.map((app) => ({
-                        id: app.id,
+                        id: `applicant-${app.id}`,
                         name: `${app.firstName} ${app.lastName}`,
                         email: app.email,
                         stage: app.stage,
@@ -92,7 +92,6 @@ export const applicantResolvers = {
             if (!admin) throw new AuthenticationError('Only Admin can Access');
 
             const applicantId = id.replace(/^applicant-/, '');
-            console.log(`Querying for applicant with id: ${applicantId}`);
 
             const applicant = await prisma.applicant.findUnique({
                 where: { id: applicantId },
@@ -106,7 +105,7 @@ export const applicantResolvers = {
             }
 
             return {
-                __typename: 'Applicant',  // Use 'Applicant' for detail view
+                __typename: 'Applicant',
                 id: `applicant-${applicant.id}`,
                 firstName: applicant.firstName,
                 lastName: applicant.lastName,
@@ -156,7 +155,6 @@ export const applicantResolvers = {
                 const stream = createReadStream();
                 const uniqueName = `${prefix}-${uuidv4()}${path.extname(filename)}`;
                 const uploadPath = path.join(process.cwd(), 'uploads');
-                console.log('uploadPath', uploadPath)
                 const filePath = path.join(uploadPath, uniqueName);
 
                 // Ensure uploads folder exists (optional but safe)

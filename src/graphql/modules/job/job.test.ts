@@ -146,7 +146,6 @@ describe('Job Module Tests', () => {
                 query: GET_JOB_BY_ID,
                 variables: { id: '1' }
             });
-        console.log('res of get job by ID', res.body)
         expect(res.status).toBe(200);
         expect(res.body.data.getJobById.title).toBe('Job 1');
     });
