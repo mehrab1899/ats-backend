@@ -121,7 +121,6 @@ export const jobResolvers = {
 
             try {
                 const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix
-                console.log(`Querying for job with id: ${jobId}`);
 
                 const job = await prisma.job.findUnique({
                     where: { id: jobId },
@@ -249,9 +248,7 @@ export const jobResolvers = {
             { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ) => {
             if (!admin) throw new AuthenticationError('Only admins can update job status');
-            console.log('id in job', id)
             const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix
-            console.log('after prefix', jobId)
             const existing = await prisma.job.findUnique({
                 where: { id: jobId },
                 include: { applicants: true }
