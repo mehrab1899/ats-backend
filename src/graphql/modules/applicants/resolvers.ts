@@ -1,12 +1,15 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { AuthenticationError, UserInputError } from 'apollo-server-errors';
 import { GraphQLUpload } from 'graphql-upload';
 import { createWriteStream } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from 'graphql-upload';
-import 'dotenv/config'; // ✅ already present — good
+import 'dotenv/config';
 import fs from 'fs';
+import { buildSearchFilters } from '../../../utils/searchFilters';
+import { Context } from '@/types/context';
+import { ApplicantsArgs } from '@/types/applicant';
 
 const VALID_STAGES = ['APPLIED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
 
@@ -15,75 +18,61 @@ export const applicantResolvers = {
     Upload: GraphQLUpload,
 
     Query: {
-        applicants: async (
-            _: unknown,
-            args: { search?: string; stage?: string; skip?: number; take?: number },
-            { prisma }: { prisma: PrismaClient }
-        ) => {
-            const { search = '', stage, skip = 0, take = 10 } = args;
+        applicants: async (_: unknown, args: ApplicantsArgs, { prisma }: Context) => {
+            const { search = '', stage, first = 10, after } = args;
 
-            const normalizedSearch = search.trim();
-            const normalizedStage = stage?.toUpperCase();
+            const filters: Prisma.ApplicantWhereInput = { ...buildSearchFilters(search, stage) };
 
-            const filters: any = {};
-            const orConditions: any[] = [];
-
-            if (normalizedSearch) {
-                orConditions.push(
-                    { firstName: { contains: normalizedSearch } },
-                    { lastName: { contains: normalizedSearch } },
-                    { email: { contains: normalizedSearch } },
-                    { phone: { contains: normalizedSearch } },
-                    {
-                        job: {
-                            title: { contains: normalizedSearch }
-                        }
-                    }
-                );
-
-                if (orConditions.length) {
-                    filters.OR = orConditions;
-                }
+            // Convert after cursor to offset
+            let cursorFilter = undefined;
+            if (after) {
+                const cursorId = Buffer.from(after, 'base64').toString('ascii').replace(/^applicant-/, '');
+                cursorFilter = { id: cursorId };
             }
+            console.log('filters found in applicants query', filters)
+            const applicants = await prisma.applicant.findMany({
+                where: filters,
+                include: {
+                    job: { select: { title: true } },
+                },
+                take: first,
+                skip: cursorFilter ? 1 : 0,
+                ...(cursorFilter && { cursor: cursorFilter }),
+                orderBy: { appliedAt: 'desc' }
+            });
 
-            if (normalizedStage && VALID_STAGES.includes(normalizedStage)) {
-                filters.stage = normalizedStage as Stage;
-            }
+            console.log('applicants found', applicants)
 
-            try {
-                // Query for paginated applicants
-                const applicants = await prisma.applicant.findMany({
-                    where: filters,
-                    include: {
-                        job: { select: { title: true } }
-                    },
-                    orderBy: { appliedAt: 'desc' },
-                    skip,
-                    take
-                });
-
-                // Query for total count of applicants matching filters
-                const totalApplicantsCount = await prisma.applicant.count({
-                    where: filters,
-                });
-
-                // Return both the paginated applicants and total count in the expected format
-                return {
-                    applicants: applicants.map((app) => ({
+            return {
+                edges: applicants.map(app => ({
+                    cursor: Buffer.from(`applicant-${app.id}`).toString('base64'),
+                    node: {
                         id: `applicant-${app.id}`,
-                        name: `${app.firstName} ${app.lastName}`,
+                        firstName: app.firstName,
+                        lastName: app.lastName,
                         email: app.email,
                         stage: app.stage,
-                        position: app.job.title,
-                        appliedAt: app.appliedAt.toISOString()
-                    })),
-                    totalApplicantsCount // Returning the total count of applicants
-                };
-            } catch (error) {
-                console.error('Error fetching applicants:', error);
-                throw new Error('Internal Server Error');
-            }
+                        appliedAt: app.appliedAt.toISOString(),
+                        job: {
+                            id: `job-${app.jobId}`,
+                            title: app.job.title,
+                        },
+                    }
+                })),
+                pageInfo: {
+                    hasNextPage: applicants.length === first,
+                    hasPreviousPage: !!cursorFilter,
+                    startCursor: applicants.length
+                        ? Buffer.from(`applicant-${applicants[0].id}`).toString('base64')
+                        : null,
+                    endCursor: applicants.length
+                        ? Buffer.from(`applicant-${applicants[applicants.length - 1].id}`).toString('base64')
+                        : null,
+                }
+            };
+
         },
+
         getApplicantById: async (
             _: unknown,
             { id }: { id: string },
