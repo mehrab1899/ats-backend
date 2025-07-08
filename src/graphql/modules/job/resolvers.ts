@@ -9,7 +9,6 @@ export const jobResolvers = {
     JSON: GraphQLJSON,
 
     Query: {
-        // 🔓 Public (Homepage)
         publicJobs: async (_: unknown, __: unknown, { prisma }: { prisma: PrismaClient }) => {
             const jobs = await prisma.job.findMany({
                 where: { status: 'OPEN' },
@@ -17,38 +16,29 @@ export const jobResolvers = {
                 include: { applicants: true }
             });
 
-            return jobs.map(job => ({
-                __typename: 'Job',
+            return jobs.map((job) => ({
                 id: `job-${job.id}`,
                 title: job.title,
                 description: job.description,
                 status: job.status,
                 type: job.type,
+                applicants: job.applicants.length,
                 skillsRequired: job.skillsRequired,
                 benefits: job.benefits,
                 createdAt: job.createdAt.toISOString(),
-                applicants: job.applicants.length,
+                context: null
             }));
         },
 
-        // 🔒 Protected (Admin Panel)
         jobs: async (
             _: unknown,
-            args: {
-                search?: string;
-                status?: JobStatus;
-                skip?: number;
-                take?: number;
-            },
+            args: { search?: string; status?: JobStatus; skip?: number; take?: number },
             { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
         ) => {
             if (!admin) throw new AuthenticationError('Admin only');
 
             const { search, status, skip = 0, take = 10 } = args;
-
             let filters: Prisma.JobWhereInput = {};
-
-            // 🔍 Build OR search filter
             const orFilters: Prisma.JobWhereInput[] = [];
 
             if (search) {
@@ -70,103 +60,63 @@ export const jobResolvers = {
 
             if (status) {
                 filters = {
-                    AND: [
-                        ...(filters.OR ? [{ OR: filters.OR }] : []),
-                        { status }
-                    ]
+                    AND: [...(filters.OR ? [{ OR: filters.OR }] : []), { status }]
                 };
             }
 
-            try {
-                // Query for paginated jobs
-                const jobs = await prisma.job.findMany({
-                    where: filters,
-                    include: { applicants: true },
-                    orderBy: { createdAt: 'desc' },
-                    skip,
-                    take
-                });
+            const jobs = await prisma.job.findMany({
+                where: filters,
+                include: { applicants: true },
+                orderBy: { createdAt: 'desc' },
+                skip,
+                take
+            });
 
-                // Query for total count of jobs matching filters
-                const totalJobsCount = await prisma.job.count({
-                    where: filters,
-                });
+            const totalJobsCount = await prisma.job.count({ where: filters });
 
-                // Return both the paginated jobs and total count
-                return {
-                    jobs: jobs.map((job) => ({
-                        __typename: 'AdminJob',
-                        id: `admin-job-${job.id}`,
-                        title: job.title,
-                        description: job.description,
-                        status: job.status,
-                        type: job.type,
-                        applicants: job.applicants.length,
-                        createdAt: job.createdAt.toISOString(),
-                    })),
-                    totalJobsCount
-                };
-            } catch (error) {
-                console.error('Error fetching jobs:', error);
-                throw new Error('Internal Server Error');
-            }
-        },
-
-        // Fetch single job by ID
-        getJobById: async (
-            _: unknown,
-            { id }: { id: string },
-            { prisma }: { prisma: PrismaClient }
-        ) => {
-
-            try {
-                const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix
-
-                const job = await prisma.job.findUnique({
-                    where: { id: jobId },
-                    include: { applicants: true },
-                });
-
-                if (!job) {
-                    throw new UserInputError(`Job with ID ${id} not found`);
-                }
-
-                return {
-                    __typename: 'Job',
-                    id: job.id,
+            return {
+                jobs: jobs.map((job) => ({
+                    id: `job-${job.id}`,
                     title: job.title,
                     description: job.description,
                     status: job.status,
                     type: job.type,
-                    skillsRequired: job.skillsRequired, // Array of strings
-                    benefits: job.benefits, // Array of strings
-                    createdAt: job.createdAt.toISOString(),
                     applicants: job.applicants.length,
-                };
-            } catch (error) {
-                console.error('Error fetching job by ID:', error);
-                throw new Error('Internal Server Error');
-            }
+                    skillsRequired: job.skillsRequired,
+                    benefits: job.benefits,
+                    createdAt: job.createdAt.toISOString(),
+                    context: null
+                })),
+                totalJobsCount
+            };
         },
+
+        getJobById: async (_: unknown, { id }: { id: string }, { prisma }: { prisma: PrismaClient }) => {
+            const jobId = id.replace(/^job-/, '');
+            const job = await prisma.job.findUnique({
+                where: { id: jobId },
+                include: { applicants: true }
+            });
+
+            if (!job) throw new UserInputError(`Job with ID ${id} not found`);
+
+            return {
+                id: `job-${job.id}`,
+                title: job.title,
+                description: job.description,
+                status: job.status,
+                type: job.type,
+                applicants: job.applicants.length,
+                skillsRequired: job.skillsRequired,
+                benefits: job.benefits,
+                createdAt: job.createdAt.toISOString(),
+                context: null
+            };
+        }
     },
 
     Mutation: {
-        createJob: async (
-            _: unknown,
-            {
-                input
-            }: {
-                input: {
-                    title: string;
-                    description: string;
-                    status?: JobStatus;
-                    type?: JobType;
-                    skillsRequired: any;
-                    benefits: any;
-                };
-            },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
-        ) => {
+        createJob: async (_: unknown, { input }: any, { prisma, admin }: any) => {
             if (!admin) throw new AuthenticationError('Only admins can create jobs');
 
             const job = await prisma.job.create({
@@ -181,36 +131,22 @@ export const jobResolvers = {
             });
 
             return {
-                id: `admin-job-${job.id}`,
+                id: `job-${job.id}`,
                 title: job.title,
                 description: job.description,
                 status: job.status,
                 type: job.type,
                 applicants: 0,
-                createdAt: job.createdAt.toISOString()
+                skillsRequired: job.skillsRequired,
+                benefits: job.benefits,
+                createdAt: job.createdAt.toISOString(),
+                context: null
             };
         },
 
-        updateJob: async (
-            _: unknown,
-            {
-                id,
-                input
-            }: {
-                id: string;
-                input: Partial<{
-                    title: string;
-                    description: string;
-                    status: JobStatus;
-                    type: JobType;
-                    skillsRequired: any;
-                    benefits: any;
-                }>;
-            },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
-        ) => {
+        updateJob: async (_: unknown, { id, input }: any, { prisma, admin }: any) => {
             if (!admin) throw new AuthenticationError('Only admins can update jobs');
-            const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix
+            const jobId = id.replace(/^job-/, '');
 
             const existingJob = await prisma.job.findUnique({
                 where: { id: jobId },
@@ -232,23 +168,23 @@ export const jobResolvers = {
             });
 
             return {
-                id: `admin-job-${updated.id}`,
+                id: `job-${updated.id}`,
                 title: updated.title,
                 description: updated.description,
                 status: updated.status,
                 type: updated.type,
                 applicants: existingJob.applicants.length,
-                createdAt: updated.createdAt.toISOString()
+                skillsRequired: updated.skillsRequired,
+                benefits: updated.benefits,
+                createdAt: updated.createdAt.toISOString(),
+                context: null
             };
         },
 
-        updateJobStatus: async (
-            _: unknown,
-            { id, status }: { id: string; status: JobStatus },
-            { prisma, admin }: { prisma: PrismaClient; admin?: { adminId: string } }
-        ) => {
+        updateJobStatus: async (_: unknown, { id, status }: any, { prisma, admin }: any) => {
             if (!admin) throw new AuthenticationError('Only admins can update job status');
-            const jobId = id.replace(/^job-|^admin-job-/, '');  // Strip prefix
+
+            const jobId = id.replace(/^job-/, '');
             const existing = await prisma.job.findUnique({
                 where: { id: jobId },
                 include: { applicants: true }
@@ -262,13 +198,16 @@ export const jobResolvers = {
             });
 
             return {
-                id: `admin-job-${updated.id}`,
+                id: `job-${updated.id}`,
                 title: updated.title,
                 description: updated.description,
                 status: updated.status,
                 type: updated.type,
                 applicants: existing.applicants.length,
-                createdAt: updated.createdAt.toISOString()
+                skillsRequired: updated.skillsRequired,
+                benefits: updated.benefits,
+                createdAt: updated.createdAt.toISOString(),
+                context: null
             };
         }
     }
