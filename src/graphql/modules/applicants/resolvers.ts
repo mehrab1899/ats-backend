@@ -5,7 +5,7 @@ import { createWriteStream } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from 'graphql-upload';
-import 'dotenv/config'; // ✅ already present — good
+import 'dotenv/config';
 import fs from 'fs';
 
 const VALID_STAGES = ['APPLIED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
@@ -17,12 +17,24 @@ export const applicantResolvers = {
     Query: {
         applicants: async (
             _: unknown,
-            args: { search?: string; stage?: string; skip?: number; take?: number },
+            {
+                search = '',
+                stage,
+                first,
+                after,
+                last,
+                before,
+            }: {
+                search?: string;
+                stage?: string;
+                first?: number;
+                after?: string;
+                last?: number;
+                before?: string;
+            },
             { prisma }: { prisma: PrismaClient }
         ) => {
-            const { search = '', stage, skip = 0, take = 10 } = args;
-
-            const normalizedSearch = search.trim();
+            const normalizedSearch = (search ?? '').trim();
             const normalizedStage = stage?.toUpperCase();
 
             const filters: any = {};
@@ -36,8 +48,8 @@ export const applicantResolvers = {
                     { phone: { contains: normalizedSearch } },
                     {
                         job: {
-                            title: { contains: normalizedSearch }
-                        }
+                            title: { contains: normalizedSearch },
+                        },
                     }
                 );
 
@@ -50,40 +62,73 @@ export const applicantResolvers = {
                 filters.stage = normalizedStage as Stage;
             }
 
-            try {
-                // Query for paginated applicants
-                const applicants = await prisma.applicant.findMany({
-                    where: filters,
-                    include: {
-                        job: { select: { title: true } }
-                    },
-                    orderBy: { appliedAt: 'desc' },
-                    skip,
-                    take
-                });
+            const isBackward = !!before;
+            const take = (first ?? last ?? 10) * (isBackward ? -1 : 1);
 
-                // Query for total count of applicants matching filters
-                const totalApplicantsCount = await prisma.applicant.count({
-                    where: filters,
-                });
+            let cursorFilter: { appliedAt: Date; id: string } | undefined;
 
-                // Return both the paginated applicants and total count in the expected format
-                return {
-                    applicants: applicants.map((app) => ({
-                        id: `applicant-${app.id}`,
-                        name: `${app.firstName} ${app.lastName}`,
-                        email: app.email,
-                        stage: app.stage,
-                        position: app.job.title,
-                        appliedAt: app.appliedAt.toISOString()
-                    })),
-                    totalApplicantsCount // Returning the total count of applicants
-                };
-            } catch (error) {
-                console.error('Error fetching applicants:', error);
-                throw new Error('Internal Server Error');
+            if (after || before) {
+                const cursorStr = Buffer.from(after || before!, 'base64').toString('ascii');
+                const [appliedAtStr, id] = cursorStr.split('|');
+                cursorFilter = { appliedAt: new Date(appliedAtStr), id };
             }
+
+            const applicants = await prisma.applicant.findMany({
+                where: {
+                    ...filters,
+                    ...(cursorFilter && {
+                        OR: [
+                            {
+                                appliedAt: { lt: cursorFilter.appliedAt },
+                            },
+                            {
+                                appliedAt: cursorFilter.appliedAt,
+                                id: { lt: cursorFilter.id },
+                            },
+                        ],
+                    }),
+                },
+                include: {
+                    job: { select: { title: true } },
+                },
+                orderBy: [
+                    { appliedAt: 'desc' },
+                    { id: 'desc' }, // tie-breaker
+                ],
+                take,
+            });
+
+            const hasExtra = applicants.length > Math.abs(take);
+            const paginated = hasExtra ? applicants.slice(0, Math.abs(take)) : applicants;
+
+            const edges = paginated.map((applicant) => ({
+                node: {
+                    id: `applicant-${applicant.id}`,
+                    name: `${applicant.firstName} ${applicant.lastName}`,
+                    email: applicant.email,
+                    stage: applicant.stage,
+                    position: applicant.job.title,
+                    appliedAt: applicant.appliedAt.toISOString(),
+                },
+                cursor: Buffer.from(`${applicant.appliedAt.toISOString()}|${applicant.id}`).toString('base64'),
+            }));
+
+            const pageInfo = {
+                hasNextPage: isBackward ? !!before : hasExtra,
+                hasPreviousPage: isBackward ? hasExtra : !!after,
+                startCursor: edges.length > 0 ? edges[0].cursor : null,
+                endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+            };
+
+            const totalCount = await prisma.applicant.count({ where: filters });
+
+            return {
+                edges,
+                pageInfo,
+                totalCount,
+            };
         },
+
         getApplicantById: async (
             _: unknown,
             { id }: { id: string },

@@ -25,6 +25,24 @@ export const applicantTypeDefs = gql`
     totalApplicantsCount: Int!
   }
 
+  type ApplicantEdge {
+   node: ApplicantRow!
+   cursor: String!
+ }
+
+ type ApplicantConnection {
+  edges: [ApplicantEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+ }
+
+ type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+ }
+
   type JobRef {
   id: ID!
   title: String!
@@ -55,7 +73,14 @@ export const applicantTypeDefs = gql`
   }
 
   extend type Query {
-    applicants(search: String, stage: Stage, skip: Int, take: Int): ApplicantsResponse!
+    applicants(
+    search: String
+    stage: Stage
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): ApplicantConnection!
     getApplicantById(id: ID!): Applicant!
 
   }
