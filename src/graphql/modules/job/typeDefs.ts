@@ -33,6 +33,23 @@ export const jobTypeDefs = gql`
     totalJobsCount: Int!
   }
 
+  type JobEdge {
+   cursor: String!
+   node: Job!
+  }
+
+  type JobConnection {
+    edges: [JobEdge!]!
+    pageInfo: PageInfo!
+  }
+
+  type PageInfo {
+    hasNextPage: Boolean!
+    hasPreviousPage: Boolean!
+    startCursor: String
+    endCursor: String
+  }
+
   input JobInput {
     title: String!
     description: String!
@@ -43,7 +60,7 @@ export const jobTypeDefs = gql`
   }
 
   type Query {
-    publicJobs: [Job!]!
+    publicJobs(first: Int, after: String): JobConnection!
     jobs(
       search: String
       status: JobStatus
