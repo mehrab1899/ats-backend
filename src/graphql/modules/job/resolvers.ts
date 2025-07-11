@@ -2,6 +2,8 @@ import { PrismaClient, JobStatus, JobType } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 import { AuthenticationError, UserInputError } from 'apollo-server-errors';
 import { GraphQLJSON } from 'graphql-type-json';
+import { fromGlobalId, toGlobalId } from 'graphql-relay';
+
 
 type JobWithApplicants = Prisma.JobGetPayload<{ include: { applicants: true } }>;
 
@@ -9,25 +11,51 @@ export const jobResolvers = {
     JSON: GraphQLJSON,
 
     Query: {
-        publicJobs: async (_: unknown, __: unknown, { prisma }: { prisma: PrismaClient }) => {
+        publicJobs: async (_: unknown, args: { first?: number; after?: string }, { prisma }: { prisma: PrismaClient }) => {
+            const take = args.first ?? 6;
+            const afterCursor = args.after ? fromGlobalId(args.after).id : null;
+
+
             const jobs = await prisma.job.findMany({
                 where: { status: 'OPEN' },
                 orderBy: { createdAt: 'desc' },
-                include: { applicants: true }
+                take: take + 1,
+                skip: afterCursor ? 1 : 0,
+                cursor: afterCursor ? { id: afterCursor } : undefined,
+                include: { applicants: true },
             });
 
-            return jobs.map((job) => ({
-                id: `job-${job.id}`,
-                title: job.title,
-                description: job.description,
-                status: job.status,
-                type: job.type,
-                applicants: job.applicants.length,
-                skillsRequired: job.skillsRequired,
-                benefits: job.benefits,
-                createdAt: job.createdAt.toISOString(),
-                context: null
+            const hasNextPage = jobs.length > take;
+            const slicedJobs = hasNextPage ? jobs.slice(0, take) : jobs;
+
+            const edges = slicedJobs.map((job) => ({
+                cursor: toGlobalId('Job', job.id.toString()),
+                node: {
+                    id: `job-${job.id}`,
+                    title: job.title,
+                    description: job.description,
+                    status: job.status,
+                    type: job.type,
+                    applicants: job.applicants.length,
+                    skillsRequired: job.skillsRequired,
+                    benefits: job.benefits,
+                    createdAt: job.createdAt.toISOString(),
+                    context: null,
+                },
             }));
+
+            const startCursor = edges.length > 0 ? edges[0].cursor : null;
+            const endCursor = edges.length > 0 ? edges[edges.length - 1].cursor : null;
+
+            return {
+                edges,
+                pageInfo: {
+                    hasNextPage,
+                    hasPreviousPage: false,
+                    startCursor,
+                    endCursor,
+                },
+            };
         },
 
         jobs: async (
