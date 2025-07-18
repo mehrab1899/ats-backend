@@ -11,21 +11,12 @@ export const applicantTypeDefs = gql`
     REJECTED
   }
 
-  type ApplicantRow {
-    id: ID!
-    name: String!
-    email: String!
-    stage: Stage!
-    position: String!
-    appliedAt: String!
-  }
-
   type ApplicantsResponse {
-    applicants: [ApplicantRow!]!
+    applicants: [Applicant!]!
     totalApplicantsCount: Int!
   }
 
-  type JobRef {
+  type Job {
   id: ID!
   title: String!
   }
@@ -34,10 +25,12 @@ export const applicantTypeDefs = gql`
     id: ID!
     firstName: String!
     lastName: String!
+    name: String!       
     email: String!
     phone: String!
     jobId: ID!
-    job: JobRef!   
+    job: Job!
+    position: String!      
     stage: Stage!
     cv: String!
     coverLetter: String!
@@ -62,7 +55,7 @@ export const applicantTypeDefs = gql`
 
   extend type Mutation {
     submitApplicationText(input: ApplicantTextInput!, cv: Upload!, coverLetter: Upload!): Applicant!
-    updateApplicantStage(id: ID!, stage: Stage!): ApplicantRow!
+    updateApplicantStage(id: ID!, stage: Stage!): Applicant!
 
   }
 `;
