@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FileUpload } from 'graphql-upload';
 import 'dotenv/config';
 import fs from 'fs';
+import fetch from 'node-fetch';
 
 const VALID_STAGES = ['APPLIED', 'SHORTLISTED', 'INTERVIEWED', 'HIRED', 'REJECTED'];
 
@@ -120,14 +121,43 @@ export const applicantResolvers = {
         phone: applicant.phone,
         stage: applicant.stage,
         jobId: applicant.jobId,
-        job: { id: `job-${applicant.jobId}`, title: applicant.job.title },
+        job: { id: `job-${applicant.jobId}`, title: applicant.job.title, description: applicant.job.description, },
         position: applicant.job.title,
         cv: applicant.cv,
         coverLetter: applicant.coverLetter,
         message: applicant.message,
         appliedAt: applicant.appliedAt.toISOString(),
       };
-    }
+    },
+
+    scoreResume: async (_: any, { resumeUrl, jobDescription }: any) => {
+      try {
+        // Use fetch to call FastAPI (POST request)
+        const response = await fetch('http://localhost:8000/score', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            resume_url: resumeUrl,
+            job_description: jobDescription,
+          }),
+        });
+
+        // Check if the response is OK (status code 200-299)
+        if (!response.ok) {
+          throw new Error('Failed to call FastAPI scoring service');
+        }
+
+        // Parse JSON response
+        const data = await response.json();
+        return data;  // Return response to GraphQL client
+
+      } catch (error) {
+        console.error("Failed to call FastAPI:", error);
+        throw new Error('Scoring service unavailable');
+      }
+    },
   },
 
   Mutation: {

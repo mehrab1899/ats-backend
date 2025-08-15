@@ -16,9 +16,17 @@ export const applicantTypeDefs = gql`
     totalApplicantsCount: Int!
   }
 
+  type ResumeScore {
+    category: String
+    confidence: Float
+    relevance_score: Float
+    explanation: String
+  }
+
   type Job {
-  id: ID!
-  title: String!
+    id: ID!
+    title: String!
+    description: String!
   }
 
   type Applicant {
@@ -50,6 +58,7 @@ export const applicantTypeDefs = gql`
   extend type Query {
     applicants(search: String, stage: Stage, skip: Int, take: Int): ApplicantsResponse!
     getApplicantById(id: ID!): Applicant!
+    scoreResume(resumeUrl: String!, jobDescription: String!): ResumeScore
 
   }
 
